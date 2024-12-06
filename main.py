@@ -13,7 +13,9 @@ def generate_email(agent_name, address, list_price, buy_price):
     body = f"""
 Hi {agent_name},
 
-We noticed the property at {address}, listed at ${list_price}, and we would like to present an offer of ${buy_price}.
+We noticed the property at {address}, listed at ${list_price:,.2f}, and we would like to present an offer of ${buy_price:,.2f}.
+
+Please let us know if you have any questions or need additional information.
 
 Best,
 Your Company
@@ -113,12 +115,14 @@ def upload_csv():
 
         # Iterate over each listing in the CSV
         for _, row in df.iterrows():
-            agent_name = row.get('agent_name', 'Agent')
-            agent_email = row.get('agent_email', 'test@example.com')
-            address = row.get('property_address', 'Unknown Address')
-            list_price_str = row.get('list_price', '0')
-
-            # Convert the list_price to float
+            # Adjust these keys if your CSV columns differ
+            agent_name = row.get('List Agent Full Name', 'Agent')
+            agent_email = row.get('List Agent Email', 'test@example.com')
+            address = row.get('Address', 'Unknown Address')
+            
+            list_price_str = row.get('Current Price', '0')
+            # Remove $ and commas from the price
+            list_price_str = list_price_str.replace('$', '').replace(',', '')
             try:
                 list_price = float(list_price_str)
             except ValueError:
@@ -138,6 +142,4 @@ def upload_csv():
         return "Please upload a valid CSV file."
 
 if __name__ == "__main__":
-    # This line runs the Flask app locally. 
-    # If you're in Replit, just hit the "Run" button.
     app.run(host='0.0.0.0', port=8080)
