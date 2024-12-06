@@ -1,8 +1,35 @@
 from flask import Flask, request, render_template_string
+import pandas as pd
+from io import StringIO
 
 app = Flask(__name__)
 
-# Simple HTML template
+def calculate_buy_price(list_price):
+    # Example: Offer 85% of the list price
+    return round(list_price * 0.85, 2)
+
+def generate_email(agent_name, address, list_price, buy_price):
+    subject = f"Offer for {address}"
+    body = f"""
+Hi {agent_name},
+
+We noticed the property at {address}, listed at ${list_price}, and we would like to present an offer of ${buy_price}.
+
+Best,
+Your Company
+"""
+    return subject, body
+
+def send_email(agent_email, subject, body):
+    # For now, we just print the email content to the console.
+    # Later, you can integrate with a real email service.
+    print("-----")
+    print("Sending email to:", agent_email)
+    print("Subject:", subject)
+    print(body)
+    print("-----")
+
+# HTML template for the landing page
 html_template = """
 <!doctype html>
 <html lang="en">
@@ -58,13 +85,13 @@ html_template = """
     <div class="container">
         <h1>CSV Offer Bot</h1>
         <p>Upload your CSV file of listings and the bot will process it to send automated offer emails on your behalf.</p>
-
+        
         <form action="/upload" method="post" enctype="multipart/form-data">
             <label for="csvFile">Select CSV file:</label>
             <input type="file" id="csvFile" name="file" accept=".csv" required>
             <button type="submit">Process CSV</button>
         </form>
-
+        
         <div class="footer">
             <p>&copy; 2024 Your Company</p>
         </div>
@@ -81,11 +108,36 @@ def index():
 def upload_csv():
     file = request.files.get('file')
     if file and file.filename.endswith('.csv'):
-        # For now, just show a message that the file was received.
-        return f"CSV file '{file.filename}' received and would be processed."
+        data = file.read().decode('utf-8', errors='replace')
+        df = pd.read_csv(StringIO(data))
+
+        # Iterate over each listing in the CSV
+        for _, row in df.iterrows():
+            agent_name = row.get('agent_name', 'Agent')
+            agent_email = row.get('agent_email', 'test@example.com')
+            address = row.get('property_address', 'Unknown Address')
+            list_price_str = row.get('list_price', '0')
+
+            # Convert the list_price to float
+            try:
+                list_price = float(list_price_str)
+            except ValueError:
+                list_price = 0.0
+
+            # Calculate the buy price
+            buy_price = calculate_buy_price(list_price)
+
+            # Generate email subject and body
+            subject, body = generate_email(agent_name, address, list_price, buy_price)
+
+            # "Send" the email by printing to console
+            send_email(agent_email, subject, body)
+
+        return "CSV processed and emails were printed to the console."
     else:
         return "Please upload a valid CSV file."
 
 if __name__ == "__main__":
-    # Run the Flask app on a standard port
+    # This line runs the Flask app locally. 
+    # If you're in Replit, just hit the "Run" button.
     app.run(host='0.0.0.0', port=8080)
